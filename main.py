@@ -10,9 +10,14 @@ def index():
     return render_template("index.html")
 
 
-@app.route('/shell', methods=['GET'])
+@app.route('/challenges', methods=['GET'])
 def shell():
-    return render_template("shell.html")
+    return render_template("challenges.html")
+
+
+@app.route('/runc_cve', methods=['GET'])
+def runc_cve():
+    return render_template("cve-2019-5736.html")
 
 
 if __name__ == '__main__':
