@@ -1,0 +1,19 @@
+{%- extends "base.html" %}
+{%- block title %}Docker sandbox escape{% endblock %}
+{%- block shell_menu %}active{% endblock %}
+{%- block content %}
+    <div class="jumbotron" style="margin-bottom: 0px;">
+        <div class="container">
+            <iframe src="">
+                
+            </iframe>
+        </div>
+    </div>
+    {%- with messages = get_flashed_messages() %}
+        {%- if messages %}
+            {%- for msg in messages %}
+                <p>{{ msg }}</p>
+            {%- endfor %}
+        {%- endif %}
+    {%- endwith %}
+{%- endblock %}
