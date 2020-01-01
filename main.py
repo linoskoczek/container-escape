@@ -7,6 +7,9 @@ TODOs:
  * runc challenge solve infromation (bootstrap Modal component)
  * runc challenge description popup (also Modal)
  * review and fix esception handling in whole
+ * move everything besides routes from main.py
+ * create some classes like Challenge
+ * create thread that will execute docker exec on runc challenge container
 """
 from flask import Flask, render_template, request, session, redirect, url_for
 import docker
