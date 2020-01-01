@@ -10,6 +10,8 @@ TODOs:
  * move everything besides routes from main.py
  * create some classes like Challenge
  * create thread that will execute docker exec on runc challenge container
+ * implement gVisor for running containers
+ * implement limits for cpu, ram and disk usage
 """
 from flask import Flask, render_template, request, session, redirect, url_for
 import docker
