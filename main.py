@@ -1,18 +1,3 @@
-"""
-TODOs:
-====
- * revert button on challenge page
- * shutdown button on challenge page
- * hints on challenge page (optionally)
- * runc challenge solve infromation (bootstrap Modal component)
- * runc challenge description popup (also Modal)
- * review and fix esception handling in whole
- * move everything besides routes from main.py
- * create some classes like Challenge
- * create thread that will execute docker exec on runc challenge container
- * implement gVisor for running containers
- * implement limits for cpu, ram and disk usage
-"""
 from flask import Flask, render_template, request, session, redirect, url_for
 import subprocess  # used for running nginx reload
 import threading   # used for running cleanup task/thread
@@ -185,9 +170,12 @@ def remove_orphans():
 
         for container in client.containers.list():
             if container.name not in keepalive_containers.keys():
-                os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
+                try:
+                    os.remove(f'/etc/nginx/sites-enabled/containers/{container.name}.conf')
+                except:
+                    pass
                 container.stop()
-                print(f'[+] stopped and removed container and config of {container_name}')
+                print(f'[+] stopped and removed container and config of {container.name}')
 
 
 
