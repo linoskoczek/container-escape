@@ -3,10 +3,9 @@
 {%- block challenges_menu %}active{% endblock %}
 {%- block content %}
     <div class="jumbotron" style="margin-bottom: 0px;">
-        <h2>CVE-2019-5736 challenge</h2>
+        <h2>RunC challenge</h2>
         <hr>
         <div class="container">
-            <iframe src="/runc-cve-{{ name }}/" id="term" height="0px" width="0%" style="overflow: hidden; border: 0;"></iframe>
             <div id="loadingBox">
                 <div class="d-flex justify-content-center">
                     <div class="spinner-border" role="status">
@@ -18,11 +17,14 @@
                     <p> Building container. It might take few seconds.</p>
                 </div>
             </div>
-            </div>
+        </div>
+        <button type="button" class="btn btn-dark">Revert</button>
+        <button type="button" class="btn btn-dark">Shutdown</button>
     </div>
     <script>
         var intervalId = 0;
-        var terminal = document.getElementById('term')
+        var terminal = document.createElement('iframe')
+        var timeout_counter = 60
 
         function keepAlive() {
             var req = new XMLHttpRequest()
@@ -33,32 +35,43 @@
         }
 
         function loadTerminal() {
-            document.getElementById('loadingBox').remove()
-            terminal.width = '100%'
-            terminal.height = '500px'
-            terminal.src = terminal.src
+            document.getElementById('loadingBox').innerHTML = "<iframe width=\"100%\" height=\"500px\" src=\"/challenges/runc/{{ name }}/\" ></iframe>"
             setInterval(keepAlive, 30000)
         }
 
-        function sendRequest() {
+        function sendCheckRequest() {
+            if (timeout_counter == 0) {
+                loadingBox.innerHTML = "<p class=\"d-flex justify-content-center\" >Something wen't wrong :(</p>"
+                clearInterval(intervalId)
+            }
             var req = new XMLHttpRequest()
-            req.open('GET', terminal.src, false)
+            req.open('GET', '/challenges/runc/{{ name }}/', false)
             req.send()
             if (req.status == 200) {
                 loadTerminal()
                 clearInterval(intervalId)
             }
+            timeout_counter--
         }
 
-        (function check() {
+        function sendRunRequest() {
             var req = new XMLHttpRequest()
-            req.open('GET', terminal.src, false)
+            req.open('POST', '/api/container/run', false)
+            req.send(JSON.stringify({
+                'challenge': 'runc'
+            }))
+        }
+
+        (function startChallenge() {
+            var req = new XMLHttpRequest()
+            req.open('GET', '/challenges/runc/{{ name }}/', false)
             req.send()
             if (req.status != 200) {
-                intervalId = setInterval(sendRequest, 3000)
+                sendRunRequest()
+                intervalId = setInterval(sendCheckRequest, 3000)
             } else {
                 loadTerminal()
-                terminal.src = terminal.src
+                terminal.src = '/challenges/runc/{{ name }}/'
             }
         })()
     </script>

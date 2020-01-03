@@ -1,24 +1,12 @@
-class Challenge:
+from abc import ABC, abstractmethod
 
-    instances = {}  # key: challenge, value: status
 
-    def __init__(self):
-        self.title = ''
-        self.subtitle = ''
-        self.description = ''
-        self.instances.append(self)
+class Challenge(ABC):
 
-    def __del__(self):
-        self.instances.remove(self)
-
-    def run_instance(self, id):
+    @abstractmethod
+    def run_instance(self, user_id):
         pass
 
-    def build_instance(self, id):
-        pass
-
-    def create_instance_config(self, id):
-        pass
-
-    def remove_instance(self, id):
+    @abstractmethod
+    def remove_instance(self, user_id):
         pass

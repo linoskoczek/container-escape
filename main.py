@@ -1,5 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for
-import subprocess  # used for running nginx reload
+from flask import Flask, render_template, request, session, redirect, url_for, abort
 import threading   # used for running cleanup task/thread
 import datetime
 import docker
@@ -8,14 +7,17 @@ import time
 import sys
 import os          # used for file removal
 
+from runc import Runc
 import utils
-
 
 app = Flask(__name__)
 app.secret_key = 'inzynierka123'
 
 client = docker.from_env()
 keepalive_containers = {}
+enabled_challenges = ['runc']
+
+runc_chall = Runc(client)
 
 
 @app.route('/', methods=['GET'])
@@ -28,23 +30,23 @@ def challenges():
     return render_template("challenges.html")
 
 
-@app.route('/challenges/runc', methods=['GET'])
-def runc_cve():
-    random_id = ''
+@app.route('/challenges/<challenge>', methods=['GET'])
+def display_challenge(challenge):
+    if challenge not in enabled_challenges:
+        abort(404)
 
     if 'id' not in session:
         random_id = utils.generate_id()
         session['id'] = random_id
-        threading.Thread(target=start_runc_cve_container, args=(random_id,)).start()
     else:
         try:
             client.containers.get(session['id'])
             random_id = session['id']
-        except docker.errors.NotFound:
-            session.pop('id', None)
-            return redirect(url_for('runc_cve'))
+        except:
+            session.clear()
+            return redirect(url_for('display_challenge', challenge=challenge))
 
-    return render_template("cve-2019-5736.html", name=random_id)
+    return render_template(f"{challenge}.html", name=random_id)
 
 
 @app.route('/api/container/keepalive', methods=['POST'])
@@ -55,14 +57,19 @@ def keepalive_container():
         container_name = data['id']
         keepalive_containers[container_name] = datetime.datetime.now()
         print(f'[+] updated keepalive for {container_name}')
-        return json.dumps({'status': 'ok'}), 200
+        return json.dumps({'message': 'ok'}), 200
 
-    return json.dumps({'status': 'wrong format'}), 400
+    return json.dumps({'message': 'Wrong format'}), 400
 
 
 @app.route('/api/container/run', methods=['POST'])
 def run_container():
-    return 'Ok', 200
+    data = (json.loads(request.data))
+    if data['challenge'] in enabled_challenges and 'id' in session:
+        threading.Thread(target=runc_chall.run_instance, args=(session['id'],)).start()
+        return 'Ok', 200
+    else:
+        return json.dumps({'message': "Something wen't wrong"}), 400
 
 
 @app.route('/api/container/status', methods=['POST'])
@@ -70,91 +77,36 @@ def container_status():
     return 'Ok', 200
 
 
-@app.route('/api/container/stop', methods=['POST'])
+@app.route('/api/container/revert', methods=['POST'])
 def stop_container():
     return 'Ok', 200
 
 
-def start_runc_cve_container(user_id):
-    port = utils.get_free_port()
+def remove_orphans():
+    while True:
+        time.sleep(300)
+        current_time = datetime.datetime.now()
+        print('[+] removing orphaned containers')
+        for container_name in list(keepalive_containers.keys()):
+            delta = current_time - keepalive_containers[container_name]
+            if (delta.seconds > 300):
+                del keepalive_containers[container_name]
+                client.containers.get(container_name).stop()
+                os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
+                print(f'[+] stopped and removed container and config of {container_name}')
 
-    if port == -1:
-        print("[!] couldn't find available port")
-        return
-
-    try:
-        container = client.containers.run(
-            ports={f'{port}/tcp': f'{port}/tcp'},
-            privileged=True,
-            remove=True,
-            name=user_id,
-            detach=True,
-            image='runc_vuln_host'
-        )
-        run_container_inside_container(container, port)
-        create_nginx_config(container.name, port)
-    except (docker.errors.BuildError, docker.errors.APIError) as e:
-        print(e)
-        return
-
-
-def run_container_inside_container(container, port):
-    docker_socket_check = '''sh -c 'test -e /var/run/docker.sock && echo -n "1" || echo -n "0"' '''
-
-    while container.exec_run(docker_socket_check)[1].decode('utf-8') != '1':
-        time.sleep(0.5)
-
-    build_result = container.exec_run('docker build -t vuln /opt')
-    if build_result[0] != 0:  # check if command exit code is 0
-        print(f'[!] something went wrong while building internal container for {container.name}\n{build_result[1]}')
-        raise docker.errors.BuildError
-
-    run_result = container.exec_run(f'docker run -p {port}:8081 -d --restart unless-stopped vuln')
-    if run_result[0] != 0:  # check if command exit code is 0
-        print(f'[!] something went wrong while running internal container{container.name}\n{run_result[1]}')
-        raise docker.errors.BuildError
-
-    print(f'[+] internal container created for {container.name}')
+        for container in client.containers.list():
+            if container.name not in keepalive_containers.keys():
+                try:
+                    os.remove(f'/etc/nginx/sites-enabled/containers/{container.name}.conf')
+                except:
+                    pass
+                container.stop()
+                print(f'[+] stopped and removed container and config of {container.name}')
 
 
-def create_nginx_config(container_name, port):
-    config =  'location /runc-cve-%s/ {\n' % container_name
-    config += '    proxy_pass http://127.0.0.1:%s/;\n' % port
-    config += '    proxy_http_version 1.1;\n'
-    config += '    proxy_set_header X-Real-IP $remote_addr;\n'
-    config += '    proxy_set_header Upgrade $http_upgrade;\n'
-    config += '    proxy_set_header Connection "Upgrade";\n'
-    config += '}\n'
-
-    config_path = f'/etc/nginx/sites-enabled/containers/{container_name}.conf'
-    with open(config_path, 'w+') as f:
-        f.write(config)
-
-    subprocess.call(['/usr/sbin/nginx', '-s', 'reload'])
-    print(f'[+] nginx config created and reloaded for {container_name}')
-
-
-def build_runc_cve_image():
-    client.images.build(
-        tag='runc_vuln_host',
-        path='./containers/runc/'
-    )
-
-
-# unused until I will implement revert functionality
-def cleanup(container_name):
-    try:
-        os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
-        print(f'[+] removed nginx config for {container_name}')
-    except OSError as e:
-        print(e)
-
-    try:
-        client.containers.get(container_name).stop()
-        print(f'[+] stopped container for {container_name}')
-    except docker.errors.APIError as e:
-        print(e)
-        print(f"[!] couldn't stop container {container_name} while cleaning, it might need manual removal")
+def build_challenges():
+    client.images.build(tag='runc_vuln_host', path='./containers/runc/')  # runc challenge
 
 
 if __name__ == '__main__':
@@ -163,9 +115,9 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     try:
-        build_runc_cve_image()
+        build_challenges()
     except (docker.errors.BuildError, docker.errors.APIError):
-        print('[!] something went wrong during docker image build')
+        print('[!] something went wrong during building challenge images')
 
-    threading.Thread(target=utils.remove_orphans).start()
+    threading.Thread(target=remove_orphans).start()
     app.run(host='127.0.0.1')
