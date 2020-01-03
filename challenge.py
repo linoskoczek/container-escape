@@ -3,21 +3,22 @@ class Challenge:
     instances = {}  # key: challenge, value: status
 
     def __init__(self):
-        self.name = ''
+        self.title = ''
+        self.subtitle = ''
         self.description = ''
         self.instances.append(self)
 
     def __del__(self):
         self.instances.remove(self)
 
-    def run(self, id):
+    def run_instance(self, id):
         pass
 
-    def build(self, id):
+    def build_instance(self, id):
         pass
 
-    def create_config(self, id):
+    def create_instance_config(self, id):
         pass
 
-    def remove(self, id):
+    def remove_instance(self, id):
         pass

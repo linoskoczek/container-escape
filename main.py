@@ -28,7 +28,7 @@ def challenges():
     return render_template("challenges.html")
 
 
-@app.route('/runc_cve', methods=['GET'])
+@app.route('/challenges/runc', methods=['GET'])
 def runc_cve():
     random_id = ''
 
@@ -58,6 +58,21 @@ def keepalive_container():
         return json.dumps({'status': 'ok'}), 200
 
     return json.dumps({'status': 'wrong format'}), 400
+
+
+@app.route('/api/container/run', methods=['POST'])
+def run_container():
+    return 'Ok', 200
+
+
+@app.route('/api/container/status', methods=['POST'])
+def container_status():
+    return 'Ok', 200
+
+
+@app.route('/api/container/stop', methods=['POST'])
+def stop_container():
+    return 'Ok', 200
 
 
 def start_runc_cve_container(user_id):
@@ -144,7 +159,7 @@ def cleanup(container_name):
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
-        print('[!] application requires root privileges (service restarting and docker stuff)')
+        print('[!] application requires root privileges (for restarting services and docker stuff)')
         sys.exit(-1)
 
     try:
