@@ -14,25 +14,23 @@ TODOs:
  * implement limits for cpu, ram and disk usage
 """
 from flask import Flask, render_template, request, session, redirect, url_for
-import docker
-
-import subprocess
-import threading
+import subprocess  # used for running nginx reload
+import threading   # used for running cleanup task/thread
 import datetime
-import socket
+import socket      # used for checking free port
 import random
 import string
-import json
+import docker
+import json        # used for API
 import time
 import sys
-import os
+import os          # used for file removal
 
 
 app = Flask(__name__)
 app.secret_key = 'inzynierka123'
 
 client = docker.from_env()
-created_containers = []
 keepalive_containers = {}
 
 
@@ -54,8 +52,6 @@ def runc_cve():
         alphabet = string.ascii_letters + string.digits
         random_id = ''.join([random.choice(alphabet) for n in range(16)])
         session['id'] = random_id
-        global created_containers
-        created_containers.append(f'{random_id}')
         threading.Thread(target=start_runc_cve_container, args=(random_id,)).start()
     else:
         try:
@@ -186,6 +182,13 @@ def remove_orphans():
                 client.containers.get(container_name).stop()
                 os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
                 print(f'[+] stopped and removed container and config of {container_name}')
+
+        for container in client.containers.list():
+            if container.name not in keepalive_containers.keys():
+                os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
+                container.stop()
+                print(f'[+] stopped and removed container and config of {container_name}')
+
 
 
 if __name__ == '__main__':
