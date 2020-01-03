@@ -2,14 +2,13 @@ from flask import Flask, render_template, request, session, redirect, url_for
 import subprocess  # used for running nginx reload
 import threading   # used for running cleanup task/thread
 import datetime
-import socket      # used for checking free port
-import random
-import string
 import docker
 import json        # used for API
 import time
 import sys
 import os          # used for file removal
+
+import utils
 
 
 app = Flask(__name__)
@@ -34,8 +33,7 @@ def runc_cve():
     random_id = ''
 
     if 'id' not in session:
-        alphabet = string.ascii_letters + string.digits
-        random_id = ''.join([random.choice(alphabet) for n in range(16)])
+        random_id = utils.generate_id()
         session['id'] = random_id
         threading.Thread(target=start_runc_cve_container, args=(random_id,)).start()
     else:
@@ -58,12 +56,12 @@ def keepalive_container():
         keepalive_containers[container_name] = datetime.datetime.now()
         print(f'[+] updated keepalive for {container_name}')
         return json.dumps({'status': 'ok'}), 200
-    
+
     return json.dumps({'status': 'wrong format'}), 400
 
 
 def start_runc_cve_container(user_id):
-    port = get_free_port()
+    port = utils.get_free_port()
 
     if port == -1:
         print("[!] couldn't find available port")
@@ -83,18 +81,6 @@ def start_runc_cve_container(user_id):
     except (docker.errors.BuildError, docker.errors.APIError) as e:
         print(e)
         return
-
-
-def get_free_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    for port in range(30000, 40000):
-        try:
-            s.bind(('127.0.0.1', port))
-            s.close()
-            return port
-        except:
-            continue
-    return -1
 
 
 def run_container_inside_container(container, port):
@@ -140,6 +126,7 @@ def build_runc_cve_image():
     )
 
 
+# unused until I will implement revert functionality
 def cleanup(container_name):
     try:
         os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
@@ -155,30 +142,6 @@ def cleanup(container_name):
         print(f"[!] couldn't stop container {container_name} while cleaning, it might need manual removal")
 
 
-def remove_orphans():
-    while True:
-        time.sleep(600)
-        current_time = datetime.datetime.now()
-        print('[+] removing orphaned containers')
-        for container_name in list(keepalive_containers.keys()):
-            delta = current_time - keepalive_containers[container_name]
-            if (delta.seconds > 600):
-                del keepalive_containers[container_name]
-                client.containers.get(container_name).stop()
-                os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
-                print(f'[+] stopped and removed container and config of {container_name}')
-
-        for container in client.containers.list():
-            if container.name not in keepalive_containers.keys():
-                try:
-                    os.remove(f'/etc/nginx/sites-enabled/containers/{container.name}.conf')
-                except:
-                    pass
-                container.stop()
-                print(f'[+] stopped and removed container and config of {container.name}')
-
-
-
 if __name__ == '__main__':
     if os.geteuid() != 0:
         print('[!] application requires root privileges (service restarting and docker stuff)')
@@ -189,5 +152,5 @@ if __name__ == '__main__':
     except (docker.errors.BuildError, docker.errors.APIError):
         print('[!] something went wrong during docker image build')
 
-    threading.Thread(target=remove_orphans).start()
-    app.run(debug=True, host='127.0.0.1')
+    threading.Thread(target=utils.remove_orphans).start()
+    app.run(host='127.0.0.1')
