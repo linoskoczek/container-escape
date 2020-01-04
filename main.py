@@ -15,9 +15,9 @@ app.secret_key = 'inzynierka123'
 
 client = docker.from_env()
 keepalive_containers = {}
-enabled_challenges = ['runc']
-
-runc_chall = Runc(client)
+enabled_challenges = {
+    'runc' : Runc(client)
+}
 
 
 @app.route('/', methods=['GET'])
@@ -49,36 +49,41 @@ def display_challenge(challenge):
     return render_template(f"{challenge}.html", name=random_id)
 
 
-@app.route('/api/container/keepalive', methods=['POST'])
+@app.route('/api/container/keepalive', methods=['GET'])
 def keepalive_container():
     global keepalive_containers
-    data = json.loads(request.data)
-    if 'id' in data:
-        container_name = data['id']
+
+    if 'id' in session:
+        container_name = session['id']
         keepalive_containers[container_name] = datetime.datetime.now()
         print(f'[+] updated keepalive for {container_name}')
         return json.dumps({'message': 'ok'}), 200
 
-    return json.dumps({'message': 'Wrong format'}), 400
+    return json.dumps({'message': 'wrong format'}), 400
 
 
 @app.route('/api/container/run', methods=['POST'])
 def run_container():
     data = (json.loads(request.data))
+    
     if data['challenge'] in enabled_challenges and 'id' in session:
-        threading.Thread(target=runc_chall.run_instance, args=(session['id'],)).start()
-        return 'Ok', 200
-    else:
-        return json.dumps({'message': "Something wen't wrong"}), 400
+        threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
+        return json.dumps({'message': "Ok"}), 200
 
-
-@app.route('/api/container/status', methods=['POST'])
-def container_status():
-    return 'Ok', 200
+    return json.dumps({'message': "Something wen't wrong"}), 400
 
 
 @app.route('/api/container/revert', methods=['POST'])
 def stop_container():
+    data = (json.loads(request.data))
+
+    if 'id' in session:
+        try:
+            client.containers.get(session['id']).stop()
+            threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
+        except:
+            return 'Error', 400
+
     return 'Ok', 200
 
 
