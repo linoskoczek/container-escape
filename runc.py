@@ -1,6 +1,7 @@
 import subprocess
 import docker
 import time
+import os
 
 from challenge import Challenge
 import utils
@@ -33,6 +34,20 @@ class Runc(Challenge):
         except (docker.errors.BuildError, docker.errors.APIError) as e:
             print(f'[!] container build failed for {user_id}:\n{e}')
 
+    def remove_instance(self, user_id, client):
+        try:
+            os.remove(f'/etc/nginx/sites-enabled/containers/{user_id}.conf')
+            print(f'[+] removed nginx config for {user_id}')
+        except OSError as e:
+            print(e)
+
+        try:
+            client.containers.get(user_id).stop()
+            print(f'[+] stopped container for {user_id}')
+        except docker.errors.APIError as e:
+            print(e)
+            print(f"[!] couldn't stop container {user_id} while cleaning, it might need manual removal")
+
     def create_nginx_config(self, user_id, port):
         config =  'location /challenges/runc/%s/ {\n' % user_id
         config += '    proxy_pass http://127.0.0.1:%s/;\n' % port
@@ -53,20 +68,6 @@ class Runc(Challenge):
         if res != 0:
             raise Exception('Nginx reload failed (non zero exit code)')
         print(f'[+] nginx config created and reloaded for {user_id}')
-
-    def remove_instance(user_id):
-        try:
-            os.remove(f'/etc/nginx/sites-enabled/containers/{user_id}.conf')
-            print(f'[+] removed nginx config for {user_id}')
-        except OSError as e:
-            print(e)
-
-        try:
-            client.containers.get(user_id).stop()
-            print(f'[+] stopped container for {user_id}')
-        except docker.errors.APIError as e:
-            print(e)
-            print(f"[!] couldn't stop container {user_id} while cleaning, it might need manual removal")
 
     def run_vulnerable_container(self, container, port):
         docker_soc_check = '''sh -c 'test -e /var/run/docker.sock && echo -n "1" || echo -n "0"' '''

@@ -5,7 +5,7 @@ TODOs:
  - [ ] runc challenge solve infromation (bootstrap Modal component)
  - [x] runc challenge description popup (also Modal)
  - [x] review and fix esception handling in whole
- - [ ] move everything besides routes from main.py
+ - [x] move everything besides routes from main.py
  - [x] create some classes for like `Challenge` etc.
  - [ ] create thread that will execute docker exec on runc challenge container
  - [ ] implement gVisor for running containers
@@ -57,4 +57,3 @@ Instalation
       ```
     * `mkdir /etc/nginx/sites-enabled/containers/`
  * install docker
- 
