@@ -1,4 +1,5 @@
 import subprocess
+import threading
 import docker
 import time
 import os
@@ -11,6 +12,7 @@ class Runc(Challenge):
 
     def __init__(self, client):
         self.client = client
+        threading.Thread(target=self.win_check).start()
 
     def run_instance(self, user_id):
         port = utils.get_free_port()
@@ -34,7 +36,7 @@ class Runc(Challenge):
         except (docker.errors.BuildError, docker.errors.APIError) as e:
             print(f'[!] container build failed for {user_id}:\n{e}')
 
-    def remove_instance(self, user_id, client):
+    def remove_instance(self, user_id):
         try:
             os.remove(f'/etc/nginx/sites-enabled/containers/{user_id}.conf')
             print(f'[+] removed nginx config for {user_id}')
@@ -42,7 +44,7 @@ class Runc(Challenge):
             print(e)
 
         try:
-            client.containers.get(user_id).stop()
+            self.client.containers.get(user_id).stop()
             print(f'[+] stopped container for {user_id}')
         except docker.errors.APIError as e:
             print(e)
@@ -84,3 +86,13 @@ class Runc(Challenge):
             raise Exception(f'Internal container run failed:\n{run_result[1]}')
 
         print(f'[+] internal container created for {container.name}')
+
+    def win_check(self):
+        while True:
+            time.sleep(60)
+            for container in self.client.containers.list():
+                if container.name.split('-')[0] == 'runc':
+                   res = container.exec_run('sha1sum /usr/local/bin/runc')
+                   print(res[1].decode('utf-8'))
+                   #containers_list = container.exec_run('docker ps')
+                   #container_id = containers_list[1].decode('utf-8').split('\n')[1].split(' ')[0]

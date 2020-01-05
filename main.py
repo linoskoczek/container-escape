@@ -34,7 +34,7 @@ def display_challenge(challenge):
         abort(404)
 
     if 'id' not in session:
-        random_id = utils.generate_id()
+        random_id = challenge + '-' + utils.generate_id()
         session['id'] = random_id
     else:
         try:
@@ -77,7 +77,7 @@ def stop_container():
 
     if 'id' in session:
         try:
-            enabled_challenges[data['challenge']].remove_instance(session['id'], client)
+            enabled_challenges[data['challenge']].remove_instance(session['id'])
             threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
         except Exception as e:
             print(e)
