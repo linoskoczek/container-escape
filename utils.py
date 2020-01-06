@@ -1,4 +1,5 @@
 import datetime
+import docker
 import string
 import random
 import socket
@@ -24,7 +25,7 @@ def get_free_port():
     return -1
 
 
-def remove_orphans(client, keepalive_containers):
+def remove_orphans(client, keepalive_containers, enabled_challenges):
     while True:
         time.sleep(300)
         current_time = datetime.datetime.now()
@@ -33,23 +34,36 @@ def remove_orphans(client, keepalive_containers):
             delta = current_time - keepalive_containers[container_name]
             if (delta.seconds > 300):
                 del keepalive_containers[container_name]
-                client.containers.get(container_name).stop()
-                os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
-                print(f'[+] stopped and removed container and config of {container_name}')
+                if '-' in container_name:
+                    challenge = container_name.split('-')[0]
+                    if challenge in enabled_challenges:
+                        enabled_challenges[challenge].remove_instance(container_name)
+                    else:
+                        client.containers.get(container_name).stop()
+                        os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
+                        print(f'[+] stopped and removed container and config of {container_name}')
+                else:
+                    client.containers.get(container_name).stop()
+                    os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
+                    print(f'[+] stopped and removed container and config of {container_name}')
 
-        for container in client.containers.list():
-            if container.name not in keepalive_containers.keys():
-                try:
-                    os.remove(f'/etc/nginx/sites-enabled/containers/{container.name}.conf')
-                except:
-                    pass
-                container.stop()
-                print(f'[+] stopped and removed container and config of {container.name}')
+        ### This part is commented out because of race condition occuring
+        ### when the container image was during build phase and that part
+        ### of code removed it because it apeared to be not in use
+        # for container in client.containers.list():
+        #     if container.name not in keepalive_containers.keys():
+        #         try:
+        #             os.remove(f'/etc/nginx/sites-enabled/containers/{container.name}.conf')
+        #         except:
+        #             pass
+        #         container.stop()
+        #         print(f'[+] stopped and removed container and config of {container.name}')
 
 
-def build_challenges(client):
+def build_challenges(enabled_challenges):
     try:
-        client.images.build(tag='runc_vuln_host', path='./containers/runc/')  # runc challenge
+        for challenge_obj in enabled_challenges.values():
+            challenge_obj.build_challenge()
     except (docker.errors.BuildError, docker.errors.APIError):
         print('[!] something went wrong during building challenge images')
         sys.exit(-1)

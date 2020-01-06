@@ -10,3 +10,7 @@ class Challenge(ABC):
     @abstractmethod
     def remove_instance(self, user_id):
         pass
+
+    @abstractmethod
+    def build_challenge(self):
+        pass

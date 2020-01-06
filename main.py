@@ -13,8 +13,9 @@ app.secret_key = 'inzynierka123'
 
 client = docker.from_env()
 keepalive_containers = {}
+solved_challenges = []
 enabled_challenges = {
-    'runc' : Runc(client)
+    'runc' : Runc(client, solved_challenges)
 }
 
 
@@ -66,9 +67,9 @@ def run_container():
     
     if data['challenge'] in enabled_challenges and 'id' in session:
         threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
-        return json.dumps({'message': "Ok"}), 200
+        return json.dumps({'message': 'ok'}), 200
 
-    return json.dumps({'message': "Something wen't wrong"}), 400
+    return json.dumps({'message': "something wen't wrong"}), 400
 
 
 @app.route('/api/container/revert', methods=['POST'])
@@ -81,13 +82,24 @@ def stop_container():
             threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
         except Exception as e:
             print(e)
-            return 'Error', 400
+            return json.dumps({'message': 'error'}), 400
 
-    return 'Ok', 200
+    return json.dumps({'message': 'ok'}), 200
+
+
+@app.route('/api/container/status', methods=['GET'])
+def container_status():
+    if 'id' in session:
+        if session['id'] in solved_challenges:
+            return json.dumps({'message': 'solved'}), 200
+        else:
+            return json.dumps({'message': 'not solved'}), 200
+
+    return json.dumps({'message': 'error'}), 400
 
 
 if __name__ == '__main__':
     utils.check_privs()
-    utils.build_challenges(client)
-    threading.Thread(target=utils.remove_orphans, args=(client, keepalive_containers)).start()
+    utils.build_challenges(enabled_challenges)
+    threading.Thread(target=utils.remove_orphans, args=(client, keepalive_containers, enabled_challenges)).start()
     app.run(host='127.0.0.1')
