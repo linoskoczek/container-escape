@@ -27,7 +27,7 @@ Instalation
        }
     
        http {
-       	   sendfile on;
+    	   sendfile on;
     	   tcp_nopush on;
     	   tcp_nodelay on;
     	   keepalive_timeout 65;
