@@ -6,7 +6,7 @@ TODOs:
  - [x] runc challenge description popup (also Modal)
  - [x] review and fix esception handling in whole
  - [x] move everything besides routes from main.py
- - [x] create some classes for like `Challenge` etc.
+ - [x] implement abstract class for challenges
  - [x] create thread that will execute docker exec on runc challenge container
  - [ ] implement gVisor for running containers
  - [ ] implement limits for cpu, ram and disk usage
