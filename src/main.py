@@ -5,7 +5,7 @@ import docker
 import json
 import os
 
-from runc import Runc
+from challenges.runc import Runc
 import utils
 
 app = Flask(__name__)
@@ -25,12 +25,12 @@ def index():
 
 
 @app.route('/challenges', methods=['GET'])
-def challenges():
+def challenges_page():
     return render_template("challenges.html")
 
 
 @app.route('/challenges/<challenge>', methods=['GET'])
-def display_challenge(challenge):
+def challenge_page(challenge):
     if challenge not in enabled_challenges:
         abort(404)
 
@@ -43,7 +43,7 @@ def display_challenge(challenge):
             random_id = session['id']
         except:
             session.clear()
-            return redirect(url_for('display_challenge', challenge=challenge))
+            return redirect(url_for('challenge_page', challenge=challenge))
 
     return render_template(f"{challenge}.html", name=random_id)
 

@@ -4,7 +4,7 @@ import docker
 import time
 import os
 
-from challenge import Challenge
+from challenges.challenge import Challenge
 import utils
 
 
