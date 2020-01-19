@@ -8,7 +8,7 @@ TODOs:
  - [x] move everything besides routes from main.py
  - [x] implement abstract class for challenges
  - [x] create thread that will execute docker exec on runc challenge container
- - [ ] implement gVisor for running containers
+ - [x] implement gVisor for running containers
  - [ ] implement limits for cpu, ram and disk usage
  - [ ] save internal container image to file to speedup building vulnerable container
 
