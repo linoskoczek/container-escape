@@ -76,10 +76,8 @@
 
         function sendRunRequest() {
             var req = new XMLHttpRequest()
-            req.open('POST', '/api/container/run', false)
-            req.send(JSON.stringify({
-                'challenge': 'runc'
-            }))
+            req.open('GET', '/api/container/run', false)
+            req.send()
         }
 
         function sendRevertRequest() {
@@ -87,10 +85,8 @@
             winIntervalId = 0
 
             var req = new XMLHttpRequest()
-            req.open('POST', '/api/container/revert', true)
-            req.send(JSON.stringify({
-                'challenge': 'runc'
-            }))
+            req.open('GET', '/api/container/revert', true)
+            req.send()
 
             document.getElementById('loadingBox').innerHTML = `<div class="d-flex justify-content-center">
                     <div class="spinner-border" role="status">

@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, session, redirect, url_for, abort
+from flask import Flask, render_template, request, session, redirect, url_for
+from flask import abort, jsonify
 import threading
 import datetime
 import docker
-import json
 import os
 
 from challenges.runc import Runc
@@ -56,46 +56,51 @@ def keepalive_container():
         container_name = session['id']
         keepalive_containers[container_name] = datetime.datetime.now()
         print(f'[+] updated keepalive for {container_name}')
-        return json.dumps({'message': 'ok'}), 200
+        return jsonify(message='ok'), 200
 
-    return json.dumps({'message': 'wrong format'}), 400
+    return jsonify(message='wrong format'), 400
 
 
-@app.route('/api/container/run', methods=['POST'])
+@app.route('/api/container/run', methods=['GET'])
 def run_container():
-    data = (json.loads(request.data))
-    
-    if data['challenge'] in enabled_challenges and 'id' in session:
-        threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
-        return json.dumps({'message': 'ok'}), 200
-
-    return json.dumps({'message': "something wen't wrong"}), 400
-
-
-@app.route('/api/container/revert', methods=['POST'])
-def stop_container():
-    data = (json.loads(request.data))
-
     if 'id' in session:
-        try:
-            enabled_challenges[data['challenge']].remove_instance(session['id'])
-            threading.Thread(target=enabled_challenges[data['challenge']].run_instance, args=(session['id'],)).start()
-        except Exception as e:
-            print(e)
-            return json.dumps({'message': 'error'}), 400
+        challenge = session['id'].split('-')[0]
 
-    return json.dumps({'message': 'ok'}), 200
+        if challenge in enabled_challenges:
+            try:
+                threading.Thread(target=enabled_challenges[challenge].run_instance, args=(session['id'],)).start()
+                return jsonify(message='ok'), 200
+            except Exception as e:
+                print(e)
+
+    return jsonify(message='error'), 400
+
+
+@app.route('/api/container/revert', methods=['GET'])
+def revert_container():
+    if 'id' in session:
+        challenge = session['id'].split('-')[0]
+
+        if challenge in enabled_challenges:
+            try:
+                enabled_challenges[challenge].remove_instance(session['id'])
+                threading.Thread(target=enabled_challenges[challenge].run_instance, args=(session['id'],)).start()
+                return jsonify(message='ok'), 200
+            except Exception as e:
+                print(e)
+
+    return jsonify(message='error'), 400
 
 
 @app.route('/api/container/status', methods=['GET'])
 def container_status():
     if 'id' in session:
         if session['id'] in solved_challenges:
-            return json.dumps({'message': 'solved'}), 200
+            return jsonify(message='solved'), 200
         else:
-            return json.dumps({'message': 'not solved'}), 200
+            return jsonify(message='not solved'), 200
 
-    return json.dumps({'message': 'error'}), 400
+    return jsonify(message='error'), 400
 
 
 if __name__ == '__main__':
