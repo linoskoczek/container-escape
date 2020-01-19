@@ -57,3 +57,23 @@ Instalation
       ```
     * `mkdir /etc/nginx/sites-enabled/containers/`
  * install docker
+ * install gVisor sandbox
+   * download gVisor binary
+     ```bash
+     $ wget https://storage.googleapis.com/gvisor/releases/master/latest/runsc -O /home/user/runsc
+     $ chmod +x /home/user/runsc
+     ```
+   * `/etc/docker/daemon.json`
+     ```json
+     {
+         "runtimes": {
+             "runsc": {
+                 "path": "/usr/local/bin/runsc"
+             }
+         }
+     }
+     ```
+   * restart docker
+     ```bash
+     $ sudo systemctl restart docker
+     ```  
