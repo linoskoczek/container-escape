@@ -11,6 +11,7 @@ TODOs:
  - [x] implement gVisor for running containers
  - [ ] implement limits for cpu, ram and disk usage
  - [ ] save internal container image to file to speedup building vulnerable container
+ - [ ] proper logging mechanizm
 
 Instalation
 ===========
