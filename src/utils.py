@@ -1,3 +1,4 @@
+import importlib
 import datetime
 import docker
 import string
@@ -6,6 +7,8 @@ import socket
 import time
 import sys
 import os
+
+from challenges.challenge import Challenge
 
 
 def generate_id():
@@ -73,3 +76,15 @@ def check_privs():
     if os.geteuid() != 0:
         print('[!] application requires root privileges (for restarting services and docker stuff)')
         sys.exit(-1)
+
+
+def challenges_loader(enabled_challenges, client, solved_challenges):
+    for filename in os.listdir('./challenges'):
+        if filename.endswith('.py') and filename != 'challenge.py':
+            classname = filename.split('.py')[-2]
+            new_challenge = importlib.import_module('challenges.' + classname)
+            new_challenge_init = getattr(new_challenge, classname.capitalize())
+            new_challenge_obj = new_challenge_init(client, solved_challenges)
+            if isinstance(new_challenge_obj, Challenge):
+                enabled_challenges[classname] = new_challenge_obj
+                print(f'[+] successfully loaded \'{new_challenge_obj.title}\' challenge')

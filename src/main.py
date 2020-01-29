@@ -14,10 +14,7 @@ app.secret_key = 'inzynierka123'
 client = docker.from_env()
 keepalive_containers = {}
 solved_challenges = []
-# Add your challenge to this dict
-enabled_challenges = {
-    'runc' : Runc(client, solved_challenges),
-}
+enabled_challenges = {}
 
 
 @app.route('/', methods=['GET'])
@@ -46,7 +43,7 @@ def challenge_page(challenge):
             session.clear()
             return redirect(url_for('challenge_page', challenge=challenge))
 
-    return render_template(f"{challenge}.html", name=random_id)
+    return render_template(f"{challenge}.html", user_id=random_id)
 
 
 @app.route('/api/container/keepalive', methods=['GET'])
@@ -106,6 +103,7 @@ def container_status():
 
 if __name__ == '__main__':
     utils.check_privs()
+    utils.challenges_loader(enabled_challenges, client, solved_challenges)
     utils.build_challenges(enabled_challenges)
     threading.Thread(target=utils.remove_orphans, args=(client, keepalive_containers, enabled_challenges)).start()
     app.run(host='127.0.0.1')

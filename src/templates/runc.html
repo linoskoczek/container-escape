@@ -49,7 +49,7 @@
         }
 
         function loadTerminal() {
-            document.getElementById('loadingBox').innerHTML = "<iframe width=\"100%\" height=\"500px\" src=\"/challenges/runc/{{ name }}/\" ></iframe>"
+            document.getElementById('loadingBox').innerHTML = "<iframe width=\"100%\" height=\"500px\" src=\"/challenges/runc/{{ user_id }}/\" ></iframe>"
             if(keepAliveIntervalId == 0) {
                 keepAliveIntervalId = setInterval(keepAlive, 30000)
             }
@@ -65,7 +65,7 @@
                 clearInterval(intervalId)
             }
             var req = new XMLHttpRequest()
-            req.open('GET', '/challenges/runc/{{ name }}/', false)
+            req.open('GET', '/challenges/runc/{{ user_id }}/', false)
             req.send()
             if (req.status == 200) {
                 loadTerminal()
@@ -104,14 +104,14 @@
 
         (function startChallenge() {
             var req = new XMLHttpRequest()
-            req.open('GET', '/challenges/runc/{{ name }}/', false)
+            req.open('GET', '/challenges/runc/{{ user_id }}/', false)
             req.send()
             if (req.status != 200) {
                 sendRunRequest()
                 intervalId = setInterval(sendCheckRequest, 3000)
             } else {
                 loadTerminal()
-                terminal.src = '/challenges/runc/{{ name }}/'
+                terminal.src = '/challenges/runc/{{ user_id }}/'
             }
         })()
     </script>
