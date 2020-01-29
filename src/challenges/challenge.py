@@ -1,7 +1,19 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 
 
 class Challenge(ABC):
+
+    @abstractproperty
+    def title(self):
+        pass
+
+    @abstractproperty
+    def subtitle(self):
+        pass
+
+    @abstractproperty
+    def description(self):
+        pass
 
     @abstractmethod
     def run_instance(self, user_id):

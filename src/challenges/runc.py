@@ -16,6 +16,20 @@ class Runc(Challenge):
         threading.Thread(target=self.trigger).start()
         threading.Thread(target=self.win_check).start()
 
+    @property
+    def title(self):
+        return 'RunC vulnerability'
+
+    @property
+    def subtitle(self):
+        return 'CVE-2019-5736'
+
+    @property
+    def description(self):
+        return '''Runc through 1.0-rc6 allows attackers to overwrite the 
+            host runc binary by leveraging the ability to execute a command as 
+            root within container'''
+
     def run_instance(self, user_id):
         port = utils.get_free_port()
 

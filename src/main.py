@@ -14,8 +14,9 @@ app.secret_key = 'inzynierka123'
 client = docker.from_env()
 keepalive_containers = {}
 solved_challenges = []
+# Add your challenge to this dict
 enabled_challenges = {
-    'runc' : Runc(client, solved_challenges)
+    'runc' : Runc(client, solved_challenges),
 }
 
 
@@ -26,7 +27,7 @@ def index():
 
 @app.route('/challenges', methods=['GET'])
 def challenges_page():
-    return render_template("challenges.html")
+    return render_template("challenges.html", challenges=enabled_challenges)
 
 
 @app.route('/challenges/<challenge>', methods=['GET'])
