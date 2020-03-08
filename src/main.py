@@ -11,7 +11,12 @@ import utils
 
 app = Flask(__name__)
 app.secret_key = 'inzynierka123'
+
 app.logger.setLevel(logging.DEBUG)
+formatter = app.logger.handlers[0].formatter
+handler = logging.FileHandler('./sandbox-escape.log')
+handler.setFormatter(formatter)
+app.logger.addHandler(handler)
 
 client = docker.from_env()
 keepalive_containers = {}

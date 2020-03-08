@@ -5,6 +5,7 @@ import time
 import os
 
 from challenges.challenge import Challenge
+from main import app
 import utils
 
 
@@ -34,8 +35,7 @@ class Runc(Challenge):
         port = utils.get_free_port()
 
         if port == -1:
-            print("[!] couldn't find available port")
-            return
+            raise Exception("failed to run instance, couldn't find available port")
 
         try:
             container = self.client.containers.run(
@@ -48,30 +48,31 @@ class Runc(Challenge):
                 mem_limit='250m',
                 memswap_limit='250m',  # when swap limit is the same as mem, then container doesn't have access to swap
                 cpu_shares=512,  # cpu cycles limit
-                # storage_opt={'size': '512m'},  # https://stackoverflow.com/questions/33013904/how-to-limit-docker-filesystem-space-available-to-containers
+                # storage_opt={'size': '512m'},
+                # https://stackoverflow.com/questions/33013904/how-to-limit-docker-filesystem-space-available-to-containers
             )
             self.run_vulnerable_container(container, port)
             self.create_nginx_config(user_id, port)
-            print(f'[+] challenge container created for {user_id}')
+            app.logger.info(f'challenge container created for {user_id}')
         except (docker.errors.BuildError, docker.errors.APIError) as e:
-            print(f'[!] container build failed for {user_id}:\n{e}')
+            app.logger.error(f'container build failed for {user_id}: {e}')
 
     def remove_instance(self, user_id):
         try:
             os.remove(f'/etc/nginx/sites-enabled/containers/{user_id}.conf')
-            print(f'[+] removed nginx config for {user_id}')
+            app.logger.info(f'removed nginx config for {user_id}')
         except OSError as e:
-            print(e)
+            app.logger.error(f'failed to remove instance: {e}')
 
         try:
             container = self.client.containers.get(user_id)
             container.stop()
             if container.name in self.solved_challenges:
                 self.solved_challenges.remove(container.name)
-            print(f'[+] stopped container for {user_id}')
+            app.logger.info(f'stopped container for {user_id}')
         except docker.errors.APIError as e:
-            print(e)
-            print(f"[!] couldn't stop container {user_id} while cleaning, it might need manual removal")
+            app.logger.error(f'failed to remove instance: {e}')
+            app.logger.warning(f'container {user_id} might need manual removal')
 
 
     def build_challenge(self):
@@ -81,7 +82,7 @@ class Runc(Challenge):
             for chunk in image:
                 f.write(chunk)
         self.client.images.build(tag='runc_vuln_host', path='./containers/runc/')
-        print('[+] runc challenge image successfully builded')
+        app.logger.info('runc challenge image successfully builded')
 
     def create_nginx_config(self, user_id, port):
         config =  'location /challenges/runc/%s/ {\n' % user_id
@@ -97,12 +98,12 @@ class Runc(Challenge):
             with open(config_path, 'w+') as f:
                 f.write(config)
         except OSError:
-            raise Exception('Nginx config file open failed')
+            raise Exception('nginx config file open failed')
 
         res = subprocess.call(['/usr/sbin/nginx', '-s', 'reload'])
         if res != 0:
-            raise Exception('Nginx reload failed (non zero exit code)')
-        print(f'[+] nginx config created and reloaded for {user_id}')
+            raise Exception('nginx reload failed (non zero exit code)')
+        app.logger.info(f'nginx config created and reloaded for {user_id}')
 
     def run_vulnerable_container(self, container, port):
         docker_soc_check = '''sh -c 'test -e /var/run/docker.sock && echo -n "1" || echo -n "0"' '''
@@ -112,18 +113,18 @@ class Runc(Challenge):
 
         load_result = container.exec_run('docker load --input /opt/runc_vuln.tar')
         if load_result[0] != 0:  # check if command exit code is 0
-            raise Exception(f'Internal container build failed:\n{load_result[1].decode("utf-8")}')
+            raise Exception(f'internal container build failed:\n{load_result[1].decode("utf-8")}')
 
         container_id = load_result[1].decode('utf-8').strip().split(':')[2]
         tag_result = container.exec_run(f'docker tag {container_id} vuln')
         if tag_result[0] != 0:
-            raise Exception(f'Internal container tag failed:\n{tag_result[1].decode("utf-8")}')
+            raise Exception(f'internal container tag failed:\n{tag_result[1].decode("utf-8")}')
 
         run_result = container.exec_run(f'docker run -p {port}:8081 -d --restart unless-stopped vuln')
         if run_result[0] != 0:  # check if command exit code is 0
-            raise Exception(f'Internal container run failed:\n{run_result[1].decode("utf-8")}')
+            raise Exception(f'internal container run failed:\n{run_result[1].decode("utf-8")}')
 
-        print(f'[+] internal container created for {container.name}')
+        app.logger.info(f'internal container created for {container.name}')
 
     def win_check(self):
         while True:
@@ -134,7 +135,7 @@ class Runc(Challenge):
                         checksum = container.exec_run('/usr/bin/sha1sum /usr/local/bin/runc')[1].decode('utf-8').strip()
                         if checksum != '52ad938ef4044df50d5176e4f6f44079a86f0110  /usr/local/bin/runc':
                             if container.name not in self.solved_challenges:
-                                print('[!] we got a win!', container.name)
+                                app.logger.info(f'we got a win: {container.name}')
                                 self.solved_challenges.append(container.name)
                 except (docker.errors.NotFound, docker.errors.APIError):
                     continue
@@ -142,7 +143,7 @@ class Runc(Challenge):
     def trigger(self):
         while True:
             time.sleep(60)
-            print('[+] trying to trigger exploit for runc challenge')
+            app.logger.info('trying to trigger exploit for runc challenge')
             for container in self.client.containers.list():
                 try:
                     internal_container = container.exec_run('docker ps')[1].decode('utf-8').split('\n')[1].split(' ')[0]
