@@ -44,7 +44,11 @@ class Runc(Challenge):
                 remove=True,
                 name=user_id,
                 detach=True,
-                image='runc_vuln_host'
+                image='runc_vuln_host',
+                mem_limit='250m',
+                memswap_limit='250m',  # when swap limit is the same as mem, then container doesn't have access to swap
+                cpu_shares=512,  # cpu cycles limit
+                # storage_opt={'size': '512m'},  # https://stackoverflow.com/questions/33013904/how-to-limit-docker-filesystem-space-available-to-containers
             )
             self.run_vulnerable_container(container, port)
             self.create_nginx_config(user_id, port)
@@ -71,7 +75,13 @@ class Runc(Challenge):
 
 
     def build_challenge(self):
+        # first element in the returned tuple from build function is Image object
+        image = self.client.images.build(tag='runc_vuln', path='./containers/runc/vulnerable_container/')[0].save()
+        with open('./containers/runc/runc_vuln.tar', 'wb') as f:
+            for chunk in image:
+                f.write(chunk)
         self.client.images.build(tag='runc_vuln_host', path='./containers/runc/')
+        print('[+] runc challenge image successfully builded')
 
     def create_nginx_config(self, user_id, port):
         config =  'location /challenges/runc/%s/ {\n' % user_id
@@ -100,9 +110,14 @@ class Runc(Challenge):
         while container.exec_run(docker_soc_check)[1].decode('utf-8') != '1':
             time.sleep(0.5)
 
-        build_result = container.exec_run('docker build -t vuln /opt')
-        if build_result[0] != 0:  # check if command exit code is 0
-            raise Exception(f'Internal container build failed:\n{build_result[1].decode("utf-8")}')
+        load_result = container.exec_run('docker load --input /opt/runc_vuln.tar')
+        if load_result[0] != 0:  # check if command exit code is 0
+            raise Exception(f'Internal container build failed:\n{load_result[1].decode("utf-8")}')
+
+        container_id = build_result[1].decode('utf-8').strip().split(':')[2]
+        tag_result = container.exec_run(f'docker tag {container_id} vuln')
+        if tag_result[0] != 0:
+            raise Exception(f'Internal container tag failed:\n{tag_result[1].decode("utf-8")}')
 
         run_result = container.exec_run(f'docker run -p {port}:8081 -d --restart unless-stopped vuln')
         if run_result[0] != 0:  # check if command exit code is 0
