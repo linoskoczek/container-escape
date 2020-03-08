@@ -79,7 +79,7 @@ def check_privs():
         sys.exit(-1)
 
 
-def challenges_loader(enabled_challenges, client, solved_challenges):
+def load_challenges(enabled_challenges, client, solved_challenges):
     for filename in os.listdir('./challenges'):
         if filename.endswith('.py') and filename != 'challenge.py':
             classname = filename.split('.py')[-2]

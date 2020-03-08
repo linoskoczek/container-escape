@@ -1,4 +1,5 @@
 from challenges.challenge import Challenge
+from main import app
 import utils
 
 
