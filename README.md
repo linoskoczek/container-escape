@@ -1,3 +1,8 @@
+* [Architecture](#architecture)
+* [Recommended hardware requirements](#recommended-hardware-requirements)
+* [Instalation](#instalation)
+* [TODOs](#todos)
+
 Architecture
 ===
 ![arch](./images/sandbox-escape.png)
@@ -74,7 +79,7 @@ Instalation
      $ sudo systemctl restart docker
      ```  
 
-TODOs:
+TODOs
 ====
  - [x] revert button on challenge page
  - [ ] hints on challenge page (optionally)
