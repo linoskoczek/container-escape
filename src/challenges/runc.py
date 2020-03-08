@@ -114,7 +114,7 @@ class Runc(Challenge):
         if load_result[0] != 0:  # check if command exit code is 0
             raise Exception(f'Internal container build failed:\n{load_result[1].decode("utf-8")}')
 
-        container_id = build_result[1].decode('utf-8').strip().split(':')[2]
+        container_id = load_result[1].decode('utf-8').strip().split(':')[2]
         tag_result = container.exec_run(f'docker tag {container_id} vuln')
         if tag_result[0] != 0:
             raise Exception(f'Internal container tag failed:\n{tag_result[1].decode("utf-8")}')

@@ -2,14 +2,16 @@ from flask import Flask, render_template, request, session, redirect, url_for
 from flask import abort, jsonify
 import threading
 import datetime
+import logging
 import docker
 import os
 
-from challenges.runc import Runc
 import utils
+
 
 app = Flask(__name__)
 app.secret_key = 'inzynierka123'
+app.logger.setLevel(logging.DEBUG)
 
 client = docker.from_env()
 keepalive_containers = {}
@@ -53,7 +55,7 @@ def keepalive_container():
     if 'id' in session:
         container_name = session['id']
         keepalive_containers[container_name] = datetime.datetime.now()
-        print(f'[+] updated keepalive for {container_name}')
+        app.logger.info(f'updated keepalive for {container_name}')
         return jsonify(message='ok'), 200
 
     return jsonify(message='wrong format'), 400
@@ -69,7 +71,7 @@ def run_container():
                 threading.Thread(target=enabled_challenges[challenge].run_instance, args=(session['id'],)).start()
                 return jsonify(message='ok'), 200
             except Exception as e:
-                print(e)
+                app.logger.error(e)
 
     return jsonify(message='error'), 400
 
@@ -85,7 +87,7 @@ def revert_container():
                 threading.Thread(target=enabled_challenges[challenge].run_instance, args=(session['id'],)).start()
                 return jsonify(message='ok'), 200
             except Exception as e:
-                print(e)
+                app.logger.error(e)
 
     return jsonify(message='error'), 400
 

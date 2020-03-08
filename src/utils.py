@@ -9,6 +9,7 @@ import sys
 import os
 
 from challenges.challenge import Challenge
+from main import app
 
 
 def generate_id():
@@ -30,9 +31,9 @@ def get_free_port():
 
 def remove_orphans(client, keepalive_containers, enabled_challenges):
     while True:
-        time.sleep(300)
+        time.sleep(60)
         current_time = datetime.datetime.now()
-        print('[+] removing orphaned containers')
+        app.logger.debug('removing orphaned containers')
         for container_name in list(keepalive_containers.keys()):
             delta = current_time - keepalive_containers[container_name]
             if (delta.seconds > 300):
@@ -44,11 +45,11 @@ def remove_orphans(client, keepalive_containers, enabled_challenges):
                     else:
                         client.containers.get(container_name).stop()
                         os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
-                        print(f'[+] stopped and removed container and config of {container_name}')
+                        app.logger.info(f'stopped and removed container and config of {container_name}')
                 else:
                     client.containers.get(container_name).stop()
                     os.remove(f'/etc/nginx/sites-enabled/containers/{container_name}.conf')
-                    print(f'[+] stopped and removed container and config of {container_name}')
+                    app.logger.info(f'stopped and removed container and config of {container_name}')
 
         ### This part is commented out because of race condition occuring
         ### when the container image was during build phase and that part
@@ -68,13 +69,13 @@ def build_challenges(enabled_challenges):
         for challenge_obj in enabled_challenges.values():
             challenge_obj.build_challenge()
     except (docker.errors.BuildError, docker.errors.APIError):
-        print('[!] something went wrong during building challenge images')
+        app.logger.critical('something went wrong during building challenge images')
         sys.exit(-1)
 
 
 def check_privs():
     if os.geteuid() != 0:
-        print('[!] application requires root privileges (for restarting services and docker stuff)')
+        app.logger.critical('application requires root privileges (for restarting services and docker stuff)')
         sys.exit(-1)
 
 
@@ -87,4 +88,4 @@ def challenges_loader(enabled_challenges, client, solved_challenges):
             new_challenge_obj = new_challenge_init(client, solved_challenges)
             if isinstance(new_challenge_obj, Challenge):
                 enabled_challenges[classname] = new_challenge_obj
-                print(f'[+] successfully loaded \'{new_challenge_obj.title}\' challenge')
+                app.logger.info(f'successfully loaded \'{new_challenge_obj.title}\' challenge')
