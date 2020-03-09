@@ -31,7 +31,7 @@ def get_free_port():
 
 def remove_orphans(client, keepalive_containers, enabled_challenges):
     while True:
-        time.sleep(60)
+        time.sleep(30)
         current_time = datetime.datetime.now()
         app.logger.debug('removing orphaned containers')
         for container_name in list(keepalive_containers.keys()):

@@ -110,7 +110,7 @@ def container_status():
 
 if __name__ == '__main__':
     utils.check_privs()
-    utils.challenges_loader(enabled_challenges, client, solved_challenges)
+    utils.load_challenges(enabled_challenges, client, solved_challenges)
     utils.build_challenges(enabled_challenges)
     threading.Thread(target=utils.remove_orphans, args=(client, keepalive_containers, enabled_challenges)).start()
     app.run(host='127.0.0.1')

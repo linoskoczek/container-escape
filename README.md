@@ -69,7 +69,7 @@ Instalation
      {
          "runtimes": {
              "runsc": {
-                 "path": "/usr/local/bin/runsc"
+                 "path": "/home/user/runsc"
              }
          }
      }
@@ -92,4 +92,4 @@ TODOs
  - [x] implement gVisor for running containers
  - [x] implement limits for cpu, ram ~~and disk usage~~
  - [x] save internal container image to file to speedup building vulnerable container
- - [ ] proper logging mechanizm
+ - [x] proper logging mechanizm
