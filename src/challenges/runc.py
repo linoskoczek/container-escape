@@ -14,6 +14,7 @@ class Runc(Challenge):
     def __init__(self, client, solved_challenges):
         self.client = client
         self.solved_challenges = solved_challenges
+        self.lock = threading.Lock()
         threading.Thread(target=self.trigger).start()
         threading.Thread(target=self.win_check).start()
 
@@ -32,6 +33,7 @@ class Runc(Challenge):
             root within container'''
 
     def run_instance(self, user_id):
+        self.lock.acquire()
         port = utils.get_free_port()
 
         if port == -1:
@@ -46,16 +48,18 @@ class Runc(Challenge):
                 detach=True,
                 image='runc_vuln_host',
                 mem_limit='250m',
-                memswap_limit='250m',  # when swap limit is the same as mem, then container doesn't have access to swap
-                cpu_shares=512,  # cpu cycles limit
-                # storage_opt={'size': '512m'},
-                # https://stackoverflow.com/questions/33013904/how-to-limit-docker-filesystem-space-available-to-containers
+                memswap_limit='250m',    # when swap limit is the same as mem, then container doesn't have access to swap
+                cpu_shares=512,          # cpu cycles limit
+                # storage_opt={'size': '512m'},  # https://stackoverflow.com/questions/33013904/how-to-limit-docker-filesystem-space-available-to-containers
             )
             self.run_vulnerable_container(container, port)
             self.create_nginx_config(user_id, port)
             app.logger.info(f'challenge container created for {user_id}')
         except (docker.errors.BuildError, docker.errors.APIError) as e:
             app.logger.error(f'container build failed for {user_id}: {e}')
+        except Exception as e:
+            app.logger.error(f'unknown error while building container for {user_id}: {e}')
+        self.lock.release()
 
     def remove_instance(self, user_id):
         try:
@@ -67,6 +71,18 @@ class Runc(Challenge):
         try:
             container = self.client.containers.get(user_id)
             container.stop()
+            # This try-except block and while loop below is required, because the
+            # stop function from Docker SDK sometimes returns even when container 
+            # still exist, what caused some conflicts while reverting container.
+            # If container doesn't exists get function will throw 404 not found
+            # error, which will be caught, by except block. Otherwise thread will
+            # sleep for 1 second and try to get container again
+            try:
+                while self.client.containers.get(user_id):
+                    time.sleep(1)
+            except Exception:
+                pass
+
             if container.name in self.solved_challenges:
                 self.solved_challenges.remove(container.name)
             app.logger.info(f'stopped container for {user_id}')
@@ -131,7 +147,7 @@ class Runc(Challenge):
             time.sleep(1)
             for container in self.client.containers.list():
                 try:
-                    if container.name.split('-')[0] == 'runc':
+                    if container.name.split('-')[0] == 'runc' and container.status == 'running':
                         checksum = container.exec_run('/usr/bin/sha1sum /usr/local/bin/runc')[1].decode('utf-8').strip()
                         if checksum != '52ad938ef4044df50d5176e4f6f44079a86f0110  /usr/local/bin/runc':
                             if container.name not in self.solved_challenges:
@@ -139,6 +155,8 @@ class Runc(Challenge):
                                 self.solved_challenges.append(container.name)
                 except (docker.errors.NotFound, docker.errors.APIError):
                     continue
+                except Exception as e:
+                    app.logger.error(f'win check failed on {container.name} with error:\n{e}')
 
     def trigger(self):
         while True:
@@ -146,7 +164,10 @@ class Runc(Challenge):
             app.logger.info('trying to trigger exploit for runc challenge')
             for container in self.client.containers.list():
                 try:
-                    internal_container = container.exec_run('docker ps')[1].decode('utf-8').split('\n')[1].split(' ')[0]
-                    container.exec_run(f'docker exec {internal_container} sh')
+                    if container.name.split('-')[0] == 'runc' and container.status == 'running':
+                        internal_container = container.exec_run('docker ps')[1].decode('utf-8').split('\n')[1].split(' ')[0]
+                        container.exec_run(f'docker exec {internal_container} sh')
                 except (docker.errors.NotFound, docker.errors.APIError):
                     continue
+                except Exception as e:
+                    app.logger.error(f'win check failed on {container.name} with error:\n{e}')
