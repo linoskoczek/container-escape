@@ -71,7 +71,8 @@ Instalation
              "runsc": {
                  "path": "/home/user/runsc"
              }
-         }
+         },
+         "default-runtime": "runsc"
      }
      ```
    * restart docker
