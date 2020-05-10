@@ -78,3 +78,17 @@ Instalation
      ```bash
      $ sudo systemctl restart docker
      ```  
+ * systemd service
+   * `/etc/systemd/system/container-escape.service`
+     ```
+     [Unit]
+     Description=Container Escape project service
+
+     [Service]
+     Type=simple
+     ExecStart=/opt/container-escape/venv/bin/python /opt/container-escape/src/main.py
+     WorkingDirectory=/opt/container-escape/src/
+
+     [Install]
+     WantedBy=multi-user.target
+     ```
