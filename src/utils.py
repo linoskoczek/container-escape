@@ -9,6 +9,8 @@ import sys
 import os
 
 from challenges.challenge import Challenge
+from database import init_db, db_session
+from models.user import User
 from main import app
 
 
@@ -89,3 +91,17 @@ def load_challenges(enabled_challenges, client, solved_challenges):
             if isinstance(new_challenge_obj, Challenge):
                 enabled_challenges[classname] = new_challenge_obj
                 app.logger.info(f'successfully loaded \'{new_challenge_obj.title}\' challenge')
+
+
+def init_database(bcrypt):
+    init_db()
+    if User.query.filter(User.login == 'admin').count() == 0:
+        db_session.add(User('admin', bcrypt.generate_password_hash('admin'), True))
+        db_session.commit()
+
+
+def auth(bcrypt, login, password):
+    user = User.query.filter(User.login == login).first()
+    if user and bcrypt.check_password_hash(user.password, password):
+        return user
+    return None
