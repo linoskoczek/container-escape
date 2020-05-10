@@ -1,7 +1,6 @@
 * [Architecture](#architecture)
 * [Recommended hardware requirements](#recommended-hardware-requirements)
 * [Instalation](#instalation)
-* [TODOs](#todos)
 
 Architecture
 ===
@@ -79,18 +78,3 @@ Instalation
      ```bash
      $ sudo systemctl restart docker
      ```  
-
-TODOs
-====
- - [x] revert button on challenge page
- - [ ] hints on challenge page (optionally)
- - [x] runc challenge solve infromation (bootstrap Modal component)
- - [x] runc challenge description popup (also Modal)
- - [x] review and fix esception handling in whole
- - [x] move everything besides routes from main.py
- - [x] implement abstract class for challenges
- - [x] create thread that will execute docker exec on runc challenge container
- - [x] implement gVisor for running containers
- - [x] implement limits for cpu, ram ~~and disk usage~~
- - [x] save internal container image to file to speedup building vulnerable container
- - [x] proper logging mechanizm
