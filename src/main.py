@@ -4,25 +4,19 @@ from flask_bcrypt import Bcrypt
 from functools import wraps
 import threading
 import datetime
-import logging
 import secrets
 import docker
 import os
 
+from database import db_session
 from models.user import User
 import utils
 
 
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
-app.config['BCRYPT_LOG_ROUNDS'] = 14
+app.config['BCRYPT_LOG_ROUNDS'] = 12
 app.secret_key = secrets.token_bytes(32)
-
-app.logger.setLevel(logging.DEBUG)
-formatter = app.logger.handlers[0].formatter
-handler = logging.FileHandler('/var/log/sandbox-escape.log')
-handler.setFormatter(formatter)
-app.logger.addHandler(handler)
+bcrypt = Bcrypt(app)
 
 client = docker.from_env()
 keepalive_containers = {}
@@ -37,6 +31,16 @@ def login_required(func):
             return func(*args, **kwargs)
         else:
             return redirect(url_for('login'))
+    return wrapper
+
+
+def admin_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if session.get('is_admin') and session['is_admin']:
+            return func(*args, **kwargs)
+        else:
+            return redirect(url_for('index'))
     return wrapper
 
 
@@ -77,6 +81,22 @@ def logout():
     del session['login']
     del session['is_admin']
     return redirect('/')
+
+
+@app.route('/users', methods=['GET'])
+@login_required
+@admin_required
+def users():
+    # It's ugly af, but if I import it in the global namespace, then import loop
+    # is created, because models/user.py imports app and db objects from main.
+    # At least it works.
+    from models.user import User
+    return render_template(
+        'users.html',
+        is_logged_in=session.get('login'),
+        is_admin=session.get('is_admin'),
+        users=User.query.all()
+    )
 
 
 @app.route('/challenges', methods=['GET'])
@@ -136,7 +156,10 @@ def run_container():
 
         if challenge in enabled_challenges:
             try:
-                threading.Thread(target=enabled_challenges[challenge].run_instance, args=(session['id'],)).start()
+                threading.Thread(
+                    target=enabled_challenges[challenge].run_instance,
+                    args=(session['id'],)
+                ).start()
                 return jsonify(message='ok'), 200
             except Exception as e:
                 app.logger.error(e)
@@ -153,7 +176,10 @@ def revert_container():
         if challenge in enabled_challenges:
             try:
                 enabled_challenges[challenge].remove_instance(session['id'])
-                threading.Thread(target=enabled_challenges[challenge].run_instance, args=(session['id'],)).start()
+                threading.Thread(
+                    target=enabled_challenges[challenge].run_instance,
+                    args=(session['id'],)
+                ).start()
                 return jsonify(message='ok'), 200
             except Exception as e:
                 app.logger.error(e)
@@ -173,10 +199,53 @@ def container_status():
     return jsonify(message='error'), 400
 
 
+@app.route('/api/users/create', methods=['POST'])
+@login_required
+@admin_required
+def create_user():
+    data = request.get_json()
+    user_login = data['login']
+    password = data['password']
+
+    from models.user import User
+    if User.query.filter(User.login == user_login).first() is None:
+        pw_hash = bcrypt.generate_password_hash(password)
+        user = User(user_login, pw_hash, False)
+        db_session.add(user)
+        db_session.commit()
+        return jsonify(message='ok'), 200
+
+    return jsonify(message='error'), 400
+
+
+@app.route('/api/users/delete/<int:user_id>', methods=['GET'])
+@login_required
+@admin_required
+def dalete_user(user_id):
+    from models.user import User
+    user = User.query.filter(User.id == user_id).first()
+    if user:
+        db_session.delete(user)
+        db_session.commit()
+        return jsonify(message='ok'), 200
+
+    return jsonify(message='error'), 400
+
+# This function will automatically remove database sessions at the end of the 
+# request or when the application shuts down
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
+
+
 if __name__ == '__main__':
+    utils.setup_logger()
     utils.check_privs()
     utils.load_challenges(enabled_challenges, client, solved_challenges)
     utils.build_challenges(enabled_challenges)
     utils.init_database(bcrypt)
-    threading.Thread(target=utils.remove_orphans, args=(client, keepalive_containers, enabled_challenges)).start()
+    threading.Thread(
+        target=utils.remove_orphans,
+        args=(client, keepalive_containers, enabled_challenges)
+    ).start()
     app.run(host='127.0.0.1')

@@ -1,5 +1,6 @@
 import importlib
 import datetime
+import logging
 import docker
 import string
 import random
@@ -16,7 +17,8 @@ from main import app
 
 def generate_id():
     alphabet = string.ascii_letters + string.digits
-    return ''.join([random.choice(alphabet) for n in range(16)])  # return 16 random ascii chars
+    # return 16 random ascii chars
+    return ''.join([random.choice(alphabet) for n in range(16)])
 
 
 def get_free_port():
@@ -105,3 +107,11 @@ def auth(bcrypt, login, password):
     if user and bcrypt.check_password_hash(user.password, password):
         return user
     return None
+
+
+def setup_logger():
+    formatter = app.logger.handlers[0].formatter
+    handler = logging.FileHandler('/var/log/container-escape.log')
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.DEBUG)
