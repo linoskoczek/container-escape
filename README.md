@@ -1,5 +1,6 @@
 * [Architecture](#architecture)
 * [Recommended hardware requirements](#recommended-hardware-requirements)
+* [Recommended software](#recommended-software)
 * [Installation](#installation)
 
 Architecture
@@ -12,8 +13,32 @@ Recommended hardware requirements
 * 8GB RAM
 * 64GB disk
 
+Recommended software
+===
+Project tested on:
+* Ubuntu Server 18.04.4 LTS
+* Docker version 19.03.8, build afacb8b7f0
+* nginx version: nginx/1.14.0 (Ubuntu)
+* Python 3.6.9
+
 Installation
 ===========
+* clone project
+  ```bash
+  cd /opt
+  sudo git clone https://github.com/Billith/container-escape.git
+  ```
+  * install pip (on Ubuntu python3-pip package)
+  * setup virtualenv (optional, to separate python environment)
+    ```bash
+    sudo pip3 install virtualenv
+    cd /opt/container-escape
+    sudo virtualenv venv
+    sudo chown -R user:user venv/
+    . ./venv/bin/activate
+    pip install -r requirements.txt
+    deactive
+    ```
 * install and setup nginx
   * `/etc/nginx/nginx.conf`
     ```
@@ -54,8 +79,12 @@ Installation
         }
     }
     ```
-  * `mkdir /etc/nginx/sites-enabled/containers/`
-* install docker
+  * `sudo mkdir /etc/nginx/sites-enabled/containers/`
+  * restart service
+    ```bash
+    sudo systemctl restart nginx
+    ```
+* install docker (https://docs.docker.com/engine/install/ubuntu/)
   * ~~install gVisor sandbox~~ (gVisor is not cooperating with dind docker image, until problem is solved, skip this step)
     * ~~download gVisor binary~~
       ```bash
@@ -77,7 +106,7 @@ Installation
       ```bash
       $ sudo systemctl restart docker
       ```  
-* systemd service
+* systemd service (optional)
   * `/etc/systemd/system/container-escape.service`
     ```
     [Unit]
@@ -90,4 +119,8 @@ Installation
     
     [Install]
     WantedBy=multi-user.target
+    ```
+  * start service
+    ```bash
+    sudo systemctl enable --now container-escape
     ```
