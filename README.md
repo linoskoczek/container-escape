@@ -1,6 +1,6 @@
 * [Architecture](#architecture)
 * [Recommended hardware requirements](#recommended-hardware-requirements)
-* [Instalation](#instalation)
+* [Installation](#installation)
 
 Architecture
 ===
@@ -12,7 +12,7 @@ Recommended hardware requirements
 * 8GB RAM
 * 64GB disk
 
-Instalation
+Installation
 ===========
 * install and setup nginx
   * `/etc/nginx/nginx.conf`
