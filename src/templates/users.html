@@ -3,50 +3,79 @@
 {%- block users_menu %}active{% endblock %}
 {%- block content %}
         <script defer>
-            const submitNewUser = () => {
-                var login = $("#loginInput").val()
-                var password = $("#passwordInput").val()
-                var repassword = $("#rePasswordInput").val()
-
-                if (password != repassword) {
-                    console.log('works')
-                    $("#newUserAlert").html(`<div class="alert alert-danger" role="alert">Passwords doesn't match</div>`)
-                    return
+            window.onload = () => {
+              $("#loginInput")[0].addEventListener("keyup", (e) => {
+                if (e.keyCode === 13) {
+                  submitNewUser()
                 }
+              })
 
-                console.log('works: ' + login + ' : ' + password + ' : ' + repassword);
-                (async () => {
-                    const rawResponse = await fetch('/api/users/create', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({'login': login, 'password': password}),
-                        credentials: 'include'
-                    })
-                    const content = await rawResponse.json()
-                    if (content['message'] == 'error') {
-                        $("#newUserAlert").html('<div class="alert alert-danger" role="alert">Error occured while adding new user</div>')
-                    } else {
-                        window.location.reload(true);
-                    }
-                })();
+              $("#passwordInput")[0].addEventListener("keyup", (e) => {
+                if (e.keyCode === 13) {
+                  submitNewUser()
+                }
+              })
+
+              $("#rePasswordInput")[0].addEventListener("keyup", (e) => {
+                if (e.keyCode === 13) {
+                  submitNewUser()
+                }
+              })
+            }
+
+            const submitNewUser = () => {
+              var login = $("#loginInput").val()
+              var password = $("#passwordInput").val()
+              var repassword = $("#rePasswordInput").val()
+
+              if (password.length < 8) {
+                $("#newUserAlert").html(`<div class="alert alert-danger" role="alert">Password is too short (min. 8 characters)</div>`)
+                return
+              }
+
+              if (password.length > 72) {
+                $("#newUserAlert").html(`<div class="alert alert-danger" role="alert">Password is too long (max. 72 characters)</div>`)
+                return
+              }
+
+              if (password != repassword) {
+                $("#newUserAlert").html(`<div class="alert alert-danger" role="alert">Passwords doesn't match</div>`)
+                return
+              }
+
+              console.log('works: ' + login + ' : ' + password + ' : ' + repassword);
+              (async () => {
+                const rawResponse = await fetch('/api/users/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({'login': login, 'password': password}),
+                    credentials: 'include'
+                })
+                const content = await rawResponse.json()
+                if (content['message'] == 'error') {
+                    $("#newUserAlert").html('<div class="alert alert-danger" role="alert">Error occured while adding new user</div>')
+                } else {
+                    window.location.reload(true);
+                }
+              })();
             }
 
             const deleteUser = (id) => {
               console.log('Trying to delete user with ID ' + id);
               (async () => {
-                    const rawResponse = await fetch('/api/users/delete/' + id, {
-                        credentials: 'include'
-                    })
-                    const content = await rawResponse.json()
-                    if (content['message'] == 'error') {
-                        alert('error')
-                        //$("#newUserAlert").html('<div class="alert alert-danger" role="alert">Error occured while adding new user</div>')
-                    } else {
-                        window.location.reload(true);
-                    }
-                })();
+                const rawResponse = await fetch('/api/users/delete/' + id, {
+                    credentials: 'include'
+                })
+                const content = await rawResponse.json()
+                if (content['message'] == 'error') {
+                    //alert('error')
+                    //$("#newUserAlert").html('<div class="alert alert-danger" role="alert">Error occured while adding new user</div>')
+                } else {
+                    window.location.reload(true);
+                }
+              })();
             }
         </script>
         <div class="jumbotron" style="margin-bottom: 0px;">
@@ -88,7 +117,7 @@
                       <input type="text" class="form-control" id="loginInput" placeholder="Enter login">
                     </div>
                     <div class="form-group">
-                      <input type="password" class="form-control" id="passwordInput" placeholder="Enter Password">
+                      <input type="password" class="form-control" id="passwordInput" placeholder="Enter Password (from 8 to 72 characters)">
                     </div>
                     <div class="form-group">
                         <input type="password" class="form-control" id="rePasswordInput" placeholder="Repeat password">

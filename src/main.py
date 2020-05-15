@@ -207,6 +207,9 @@ def create_user():
     user_login = data['login']
     password = data['password']
 
+    if not 8 <= len(password) <= 72:
+        return jsonify(message='error'), 400
+
     from models.user import User
     if User.query.filter(User.login == user_login).first() is None:
         pw_hash = bcrypt.generate_password_hash(password)
