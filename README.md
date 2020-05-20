@@ -37,7 +37,7 @@ Installation
     sudo chown -R user:user venv/
     . ./venv/bin/activate
     pip install -r requirements.txt
-    deactive
+    deactivate
     ```
 * install and setup nginx
   * `/etc/nginx/nginx.conf`
