@@ -100,7 +100,7 @@ class Mount(Challenge):
             for chunk in image:
                 f.write(chunk)
         self.client.images.build(tag="mount_vuln_host", path="./containers/mount/")
-        app.logger.info("mount challenge image successfully builded")
+        app.logger.info("mount challenge image successfully built")
 
     def create_nginx_config(self, user_id, port):
         config = "location /challenges/mount/%s/ {\n" % user_id
