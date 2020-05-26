@@ -128,10 +128,9 @@
                   <p>
                     The goal of this challenge is to escape from the container. Inside container there's <i>ttyd</i> process running, which gives you remote access to the container. This process is out of scope of this challenge so please don't pay too much attention to that.
                 </p>
-                <p> In order to escape from the container you will have to make use of two informations:
+                <p> In order to escape from the container you will have to make use of this information:
                     <ul>
-                        <li>Container was spawned using <b><i>runc ver. 1.0.0.rc6</i></b></li>
-                        <li>Administrator is executing command <b><i>docker exec [container] sh</i></b> every minute</li>
+                        <li>Container was spawned with parameters <b><i>--device="..."</i></b> and <b><i>--cap-add="SYS_ADMIN"</i></b></li>
                     </ul>
                 <p>Good luck!</p>
                 </div>

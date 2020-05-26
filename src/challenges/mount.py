@@ -18,16 +18,17 @@ class Mount(Challenge):
 
     @property
     def title(self):
-        return "Mounting host drive"
+        return "Mounting host devices"
 
     @property
     def subtitle(self):
-        return "Wrong permissions"
+        return "Excessive capabilities"
 
     @property
     def description(self):
-        return """Running host with --privileged flag gives capabilities
-        to mount host drive into docker. This way you can manage host files."""
+        return """Devices added to Docker container can be mounted inside it
+        if container was given additional capabilities. 
+        Then, it is possible to manage files on host system."""
 
     def run_instance(self, user_id):
         self.lock.acquire()
