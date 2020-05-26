@@ -98,7 +98,7 @@ class Runc(Challenge):
             for chunk in image:
                 f.write(chunk)
         self.client.images.build(tag='runc_vuln_host', path='./containers/runc/')
-        app.logger.info('runc challenge image successfully builded')
+        app.logger.info('runc challenge image successfully built')
 
     def create_nginx_config(self, user_id, port):
         config =  'location /challenges/runc/%s/ {\n' % user_id
