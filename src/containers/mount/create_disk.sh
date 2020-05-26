@@ -14,6 +14,6 @@ if [ $? -ne 0 ]; then
 fi
 df -h | grep /mnt/flag | cut -f1 -d " " > /root/loop.txt
 if [ $(cat /root/loop.txt | wc -c) -ne 0 ]; then
-    echo -e '#!/bin/bash \ntouch VICTORY' > /mnt/flag/RUN_ME_TO_WIN.sh
+    echo -e '#!/bin/bash \ncd $(dirname $0) \ntouch VICTORY' > /mnt/flag/RUN_ME_TO_WIN.sh
     chmod +x /mnt/flag/RUN_ME_TO_WIN.sh
 fi
