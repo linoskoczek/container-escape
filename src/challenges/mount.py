@@ -14,7 +14,6 @@ class Mount(Challenge):
         self.client = client
         self.solved_challenges = solved_challenges
         self.lock = threading.Lock()
-        self.is_removed = False
 
     @property
     def title(self):
@@ -177,13 +176,11 @@ class Mount(Challenge):
             time.sleep(1)
             for container in self.client.containers.list():
                 try:
-                    if self.is_removed:
-                        break
                     if container.name.split('-')[0] == 'mount' and container.status == 'running':
                         result = container.exec_run('find /mnt/flag -name VICTORY', stdout=True, stderr=True)
                         checksum = result[1].decode('utf-8').strip()
                         if container.name not in self.solved_challenges:
-                            if 'VICTORY' in ''.join(checksum) and result[0] == 0 and not self.is_removed:
+                            if 'VICTORY' in ''.join(checksum) and result[0] == 0:
                                 app.logger.info(f'we got a win: {container.name}')
                                 self.solved_challenges.append(container.name)
                 except (docker.errors.NotFound, docker.errors.APIError):
