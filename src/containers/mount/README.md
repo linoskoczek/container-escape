@@ -4,7 +4,7 @@ Docker has built-in flag _--device_ which allows devices to be run inside a cont
 
 ## Description
 
-Prepared device is a virtual disk in `.iso` format, which is mounted on as a loop device. In real environment, it could be /dev/sda when whole system would be accessable. Due to the fact of how the platform is constructed, many different possibilities for disk creation could not be used. Additional information can be found in `create_disk.sh` file.
+Prepared device is a virtual disk in `.iso` format, which is mounted as a loop device. In real environment, it could be /dev/sda when whole system areagit would be accessible. Due to the fact of how the platform is constructed, many different possibilities for disk creation could not be used. Additional information can be found in `create_disk.sh` file.
 
 Docker is run with following command:
 ```
