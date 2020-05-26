@@ -1,7 +1,7 @@
-* [Architecture](#architecture)
-* [Recommended hardware requirements](#recommended-hardware-requirements)
-* [Recommended software](#recommended-software)
-* [Installation](#installation)
+- [Architecture](#architecture)
+- [Recommended hardware requirements](#recommended-hardware-requirements)
+- [Recommended software](#recommended-software)
+- [Installation](#installation)
 
 Architecture
 ===
@@ -26,7 +26,7 @@ Installation
 * clone project
   ```bash
   cd /opt
-  sudo git clone https://github.com/Billith/container-escape.git
+  sudo git clone https://github.com/linoskoczek/container-escape.git
   ```
   * install pip (on Ubuntu python3-pip package)
   * setup virtualenv (optional, to separate python environment)
